@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:int="http://www.springframework.org/schema/integration"
+	xmlns:int-amqp="http://www.springframework.org/schema/integration/amqp"
+	xmlns:rabbit="http://www.springframework.org/schema/rabbit"
+	xsi:schemaLocation="http://www.springframework.org/schema/integration/amqp http://www.springframework.org/schema/integration/amqp/spring-integration-amqp.xsd
+		http://www.springframework.org/schema/integration http://www.springframework.org/schema/integration/spring-integration.xsd
+		http://www.springframework.org/schema/rabbit http://www.springframework.org/schema/rabbit/spring-rabbit-1.2.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<int:gateway default-request-channel="out"
+		default-reply-channel="in" default-reply-timeout="1000"
+		service-interface="foo.Gate" />
+
+	<int:channel id="out" />
+
+	<int-amqp:outbound-channel-adapter 
+		channel="out"
+		amqp-template="rabbitTemplate"
+		exchange-name="ex" routing-key="foo" />
+
+	<rabbit:queue id="queue" /> <!-- anon, auto-delete -->
+
+	<rabbit:direct-exchange name="ex" auto-delete="true">
+		<rabbit:bindings>
+			<rabbit:binding queue="queue" key="foo"/>
+		</rabbit:bindings>
+	</rabbit:direct-exchange>
+
+	<rabbit:admin id="admin" connection-factory="rabbitConnectionFactory" />
+
+	<int-amqp:inbound-channel-adapter queue-names="#{queue.name}" channel="in" />
+
+	<int:channel id="in">
+		<int:queue />
+	</int:channel>
+
+</beans>
